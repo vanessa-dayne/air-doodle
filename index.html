@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Air Doodle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,600&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blush: #fdf1f4;
+    --blush-2: #fbe4ec;
+    --cream: #fffaf9;
+    --plum: #6a3f7a;
+    --plum-deep: #4a2a5c;
+    --lilac: #c9a7e8;
+    --pink: #f7a8c4;
+    --pink-deep: #ef7fae;
+    --ink: #5b4364;
+    --ink-soft: #9b80a8;
+    --line: rgba(106, 63, 122, 0.12);
+    --gold: #f3cf8e;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: linear-gradient(160deg, var(--blush) 0%, #f7e6ee 45%, #f3e3f3 100%);
+    color: var(--ink);
+    font-family: "Quicksand", -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  .display {
+    font-family: "Playfair Display", serif;
+    font-style: italic;
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------------- INTRO ---------------- */
+  .intro {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #ffe9f1 0%, #f6d9ec 45%, #e8c7e9 100%);
+    transition: opacity 0.6s ease, visibility 0.6s;
+  }
+  .intro.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .intro-card {
+    text-align: center;
+    padding: 0 24px;
+    max-width: 480px;
+    animation: floatIn 1s ease both;
+  }
+  .intro-ribbon {
+    font-family: "Quicksand", sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--pink-deep);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .intro-ribbon::before, .intro-ribbon::after {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: var(--pink-deep);
+    opacity: 0.5;
+  }
+  .intro h1 {
+    font-size: 52px;
+    margin: 0 0 10px;
+    color: var(--plum-deep);
+    font-weight: 700;
+    line-height: 1.05;
+  }
+  .intro h1 .accent { color: var(--pink-deep); }
+  .intro p.tag {
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 0 0 30px;
+    line-height: 1.5;
+  }
+  .begin-btn {
+    background: linear-gradient(135deg, var(--pink), var(--lilac));
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 14px 34px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: "Quicksand", sans-serif;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    box-shadow: 0 10px 24px -8px rgba(239, 127, 174, 0.55);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .begin-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 14px 28px -8px rgba(239, 127, 174, 0.65);
+  }
+
+  @keyframes floatIn {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro-card { animation: none; }
+    .begin-btn { transition: none; }
+  }
+
+  /* ---------------- APP ---------------- */
+  .app {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 20px 70px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  h1.pagehead {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--plum-deep);
+  }
+
+  h1.pagehead .spark { color: var(--pink-deep); }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    margin: 0 0 24px;
+  }
+
+  .stage-wrap {
+    position: relative;
+    border-radius: 26px;
+    overflow: hidden;
+    background: var(--cream);
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 60px -34px rgba(106, 63, 122, 0.35);
+    padding: 6px;
+  }
+
+  .stage-inner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #1b1320;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  video, canvas.draw, canvas.overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    transform: scaleX(-1);
+  }
+
+  video {
+    object-fit: cover;
+    opacity: 0.5;
+    filter: saturate(0.65) brightness(0.85) hue-rotate(-6deg);
+  }
+
+  canvas.draw, canvas.overlay {
+    pointer-events: none;
+  }
+
+  .hud {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .status {
+    background: rgba(255, 245, 250, 0.85);
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 999px;
+    padding: 7px 13px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--plum-deep);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    backdrop-filter: blur(6px);
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #d8b8d4;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  .dot.live {
+    background: var(--pink-deep);
+    box-shadow: 0 0 8px var(--pink-deep);
+  }
+
+  .center-msg {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #f3e3ee;
+    font-size: 14px;
+    z-index: 4;
+    max-width: 75%;
+    line-height: 1.5;
+  }
+  .center-msg button {
+    margin-top: 14px;
+    background: linear-gradient(135deg, var(--pink), var(--lilac));
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 24px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-family: "Quicksand", sans-serif;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .swatches {
+    display: flex;
+    gap: 11px;
+    align-items: center;
+  }
+
+  .swatch {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.active {
+    border-color: var(--plum-deep);
+    box-shadow: 0 0 0 3px var(--cream), 0 0 12px currentColor;
+  }
+
+  .brush-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .brush-control input[type=range] {
+    accent-color: var(--pink-deep);
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  button.pill {
+    background: #fff;
+    color: var(--plum-deep);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: "Quicksand", sans-serif;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  button.pill:hover {
+    background: var(--blush-2);
+    transform: translateY(-1px);
+  }
+  button.pill.primary {
+    background: linear-gradient(135deg, var(--pink), var(--lilac));
+    color: #fff;
+    border-color: transparent;
+    font-weight: 700;
+    box-shadow: 0 8px 18px -8px rgba(239, 127, 174, 0.55);
+  }
+  button.pill.primary:hover { background: linear-gradient(135deg, #f9b6cf, #d4b9ef); }
+  button.pill:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .gallery-section {
+    margin-top: 52px;
+  }
+
+  .gallery-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+
+  .gallery-head h2 {
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--plum-deep);
+    margin: 0;
+    font-weight: 700;
+    font-family: "Playfair Display", serif;
+    font-style: italic;
+  }
+
+  .gallery-count {
+    color: var(--ink-soft);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 10px;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 26px -16px rgba(106, 63, 122, 0.35);
+  }
+
+  .card img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: contain;
+    border-radius: 10px;
+    background:
+      linear-gradient(45deg, #f6e9f1 25%, transparent 25%) -8px 0/16px 16px,
+      linear-gradient(-45deg, #f6e9f1 25%, transparent 25%) -8px 0/16px 16px,
+      linear-gradient(45deg, transparent 75%, #f6e9f1 75%) -8px 0/16px 16px,
+      linear-gradient(-45deg, transparent 75%, #f6e9f1 75%) -8px 0/16px 16px,
+      #fdf6fa;
+  }
+
+  .card .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+
+  .card time {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+
+  .card .del {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-family: "Quicksand", sans-serif;
+  }
+  .card .del:hover {
+    color: var(--pink-deep);
+    background: var(--blush-2);
+  }
+
+  .empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 13px;
+    padding: 34px 0;
+    border: 1px dashed var(--line);
+    border-radius: 16px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--plum-deep);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  @media (max-width: 560px) {
+    h1.pagehead { font-size: 24px; }
+    .intro h1 { font-size: 38px; }
+    .controls { flex-direction: column; align-items: stretch; }
+    .actions { justify-content: flex-end; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .swatch, button { transition: none !important; }
+    .intro { transition: none; }
+    .intro-card { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="intro" id="intro">
+  <div class="intro-card">
+    <div class="intro-ribbon">a little doodle pad in the air</div>
+    <h1 class="display">Air<span class="accent">Doodle</span></h1>
+    <p class="tag">Hold up your hand, move your finger like you're drawing on glass, and watch a soft pink and purple line follow it. No mouse, no stylus, just your hand and the camera.</p>
+    <button class="begin-btn" id="beginBtn">Start doodling</button>
+
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <h1 class="pagehead display">Air<span class="spark">Doodle</span></h1>
+  </header>
+  <p class="subtitle">Draw with your fingertip in front of the camera. No mouse, no touch.</p>
+
+  <div class="stage-wrap">
+    <div class="stage-inner" id="stageInner">
+      <video id="video" playsinline muted></video>
+      <canvas class="draw" id="drawCanvas"></canvas>
+      <canvas class="overlay" id="overlayCanvas"></canvas>
+      <div class="hud">
+        <div class="status">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Camera off</span>
+        </div>
+      </div>
+      <div class="center-msg" id="centerMsg">
+        <div>Turn on your camera, hold up one hand,<br/>and move your index finger to draw.</div>
+        <button id="startBtn">Start camera</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="swatches" id="swatches"></div>
+    <div class="brush-control">
+      <span>Brush</span>
+      <input type="range" id="brushSize" min="3" max="24" value="9" />
+    </div>
+    <div class="actions">
+      <button class="pill" id="clearBtn">Clear</button>
+      <button class="pill primary" id="saveBtn">Save to gallery</button>
+    </div>
+  </div>
+
+  <div class="gallery-section">
+    <div class="gallery-head">
+      <h2 class="display">Your gallery</h2>
+      <span class="gallery-count" id="galleryCount"></span>
+    </div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+(function () {
+  // ---- storage shim ----
+  // window.storage only exists inside Claude.ai's artifact environment.
+  // When this file is opened directly in a browser (e.g. via a local
+  // server like Live Server), window.storage is undefined, so every
+  // save/load/delete call would throw. This shim provides the same
+  // get/set/delete/list interface backed by localStorage, so the app
+  // works the same way whether it's running in Claude.ai or standalone.
+  if (typeof window.storage === 'undefined') {
+    const PREFIX = 'airdoodle:';
+    window.storage = {
+      async get(key) {
+        const raw = localStorage.getItem(PREFIX + key);
+        if (raw === null) throw new Error('Key not found: ' + key);
+        return { key, value: raw, shared: false };
+      },
+      async set(key, value) {
+        localStorage.setItem(PREFIX + key, value);
+        return { key, value, shared: false };
+      },
+      async delete(key) {
+        localStorage.removeItem(PREFIX + key);
+        return { key, deleted: true, shared: false };
+      },
+      async list(prefix) {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(PREFIX)) {
+            const bare = k.slice(PREFIX.length);
+            if (!prefix || bare.startsWith(prefix)) keys.push(bare);
+          }
+        }
+        return { keys, prefix, shared: false };
+      }
+    };
+  }
+
+  // ---- coquette palette ----
+  const COLORS = [
+    { name: 'bubblegum', hex: '#f7a8c4' },
+    { name: 'lilac', hex: '#c9a7e8' },
+    { name: 'rose gold', hex: '#f3cf8e' },
+    { name: 'cream', hex: '#fffaf9' },
+  ];
+
+  let currentColor = COLORS[0].hex;
+  let brushSize = 9;
+
+  const intro = document.getElementById('intro');
+  const beginBtn = document.getElementById('beginBtn');
+  const video = document.getElementById('video');
+  const drawCanvas = document.getElementById('drawCanvas');
+  const overlayCanvas = document.getElementById('overlayCanvas');
+  const stageInner = document.getElementById('stageInner');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const centerMsg = document.getElementById('centerMsg');
+  const startBtn = document.getElementById('startBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const swatchesEl = document.getElementById('swatches');
+  const brushSizeEl = document.getElementById('brushSize');
+  const galleryGrid = document.getElementById('galleryGrid');
+  const galleryCount = document.getElementById('galleryCount');
+  const toastEl = document.getElementById('toast');
+
+  const drawCtx = drawCanvas.getContext('2d');
+  const overlayCtx = overlayCanvas.getContext('2d');
+
+  beginBtn.addEventListener('click', () => {
+    intro.classList.add('hide');
+  });
+
+  let W = 640, H = 480;
+  function sizeCanvases() {
+    const rect = stageInner.getBoundingClientRect();
+    W = rect.width; H = rect.height;
+    [drawCanvas, overlayCanvas].forEach(c => {
+      c.width = W; c.height = H;
+    });
+    redrawPersistentStroke();
+  }
+  window.addEventListener('resize', sizeCanvases);
+
+  // ---- persistent stroke storage (normalized coords) ----
+  // rawPoints: what the fingertip actually reported (used as input to the smoother)
+  // strokePoints: the SMOOTHED points we actually render + save (this is the fix for jitter)
+  let rawPoints = [];
+  let strokePoints = [];
+  let trailPoints = [];
+
+  // Smoothing: keep a short rolling window of recent raw points and
+  // push their weighted average as the "smoothed" point. This removes
+  // high-frequency jitter from hand tracking while still following
+  // genuine movement closely.
+  const SMOOTH_WINDOW = 5;
+  let recentRaw = [];
+
+  function pushSmoothedPoint(nx, ny, brk) {
+    if (brk) {
+      recentRaw = [];
+      strokePoints.push({ brk: true });
+      return;
+    }
+    recentRaw.push({ x: nx, y: ny });
+    if (recentRaw.length > SMOOTH_WINDOW) recentRaw.shift();
+
+    // weighted average, favoring the most recent points so it still feels responsive
+    let sx = 0, sy = 0, sw = 0;
+    recentRaw.forEach((p, i) => {
+      const w = i + 1;
+      sx += p.x * w; sy += p.y * w; sw += w;
+    });
+    const sxAvg = sx / sw, syAvg = sy / sw;
+
+    strokePoints.push({ x: sxAvg, y: syAvg, color: currentColor, size: brushSize });
+    trailPoints.push({ x: sxAvg, y: syAvg, color: currentColor, size: brushSize, t: performance.now() });
+  }
+
+  // Draw smooth curves through points using quadratic curve segments
+  // (curve through midpoints) instead of straight lineTo segments,
+  // which is what makes handwriting-style lines look fluid rather than jagged.
+  function strokeSmoothPath(ctx, points, scaleX, scaleY) {
+    if (points.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x * scaleX, points[0].y * scaleY);
+    for (let i = 1; i < points.length - 1; i++) {
+      const curr = points[i];
+      const next = points[i + 1];
+      const midX = (curr.x + next.x) / 2 * scaleX;
+      const midY = (curr.y + next.y) / 2 * scaleY;
+      ctx.quadraticCurveTo(curr.x * scaleX, curr.y * scaleY, midX, midY);
+    }
+    const last = points[points.length - 1];
+    ctx.lineTo(last.x * scaleX, last.y * scaleY);
+    ctx.stroke();
+  }
+
+  function redrawPersistentStroke() {
+    drawCtx.clearRect(0, 0, W, H);
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+    let segment = [];
+    let segColor = null, segSize = null;
+
+    function flush() {
+      if (segment.length > 1) {
+        drawCtx.strokeStyle = segColor;
+        drawCtx.lineWidth = segSize;
+        strokeSmoothPath(drawCtx, segment, W, H);
+      }
+      segment = [];
+    }
+
+    for (const p of strokePoints) {
+      if (p.brk) { flush(); continue; }
+      if (segColor !== p.color || segSize !== p.size) {
+        flush();
+        segColor = p.color;
+        segSize = p.size;
+      }
+      segment.push(p);
+    }
+    flush();
+  }
+
+  function addStrokePoint(nx, ny) {
+    pushSmoothedPoint(nx, ny, false);
+    redrawPersistentStroke();
+  }
+
+  function breakStroke() {
+    if (strokePoints.length && !strokePoints[strokePoints.length - 1].brk) {
+      pushSmoothedPoint(0, 0, true);
+    }
+  }
+
+  function clearAll() {
+    strokePoints = [];
+    trailPoints = [];
+    recentRaw = [];
+    drawCtx.clearRect(0, 0, W, H);
+  }
+
+  // ---- glow trail animation on overlay canvas (soft coquette glow, fades ~900ms) ----
+  function animateOverlay() {
+    overlayCtx.clearRect(0, 0, W, H);
+    const now = performance.now();
+    trailPoints = trailPoints.filter(p => now - p.t < 900);
+    overlayCtx.lineCap = 'round';
+    overlayCtx.lineJoin = 'round';
+
+    for (let i = 1; i < trailPoints.length; i++) {
+      const a = trailPoints[i - 1], b = trailPoints[i];
+      if (Math.hypot(a.x - b.x, a.y - b.y) > 0.08) continue;
+      const age = now - b.t;
+      const alpha = Math.max(0, 1 - age / 900);
+      if (alpha <= 0) continue;
+      overlayCtx.strokeStyle = b.color;
+      overlayCtx.globalAlpha = alpha * 0.85;
+      overlayCtx.lineWidth = b.size * (1 + alpha * 0.7);
+      overlayCtx.shadowColor = b.color;
+      overlayCtx.shadowBlur = 18 * alpha;
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(a.x * W, a.y * H);
+      overlayCtx.lineTo(b.x * W, b.y * H);
+      overlayCtx.stroke();
+    }
+
+    // tiny sparkle at the current fingertip
+    if (trailPoints.length) {
+      const tip = trailPoints[trailPoints.length - 1];
+      const age = now - tip.t;
+      if (age < 250) {
+        const a2 = 1 - age / 250;
+        overlayCtx.globalAlpha = a2;
+        overlayCtx.fillStyle = '#fff7fb';
+        overlayCtx.shadowColor = tip.color;
+        overlayCtx.shadowBlur = 14;
+        overlayCtx.beginPath();
+        overlayCtx.arc(tip.x * W, tip.y * H, tip.size * 0.55, 0, Math.PI * 2);
+        overlayCtx.fill();
+      }
+    }
+
+    overlayCtx.globalAlpha = 1;
+    overlayCtx.shadowBlur = 0;
+    requestAnimationFrame(animateOverlay);
+  }
+  requestAnimationFrame(animateOverlay);
+
+  // ---- color swatches ----
+  function renderSwatches() {
+    swatchesEl.innerHTML = '';
+    COLORS.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'swatch' + (c.hex === currentColor ? ' active' : '');
+      btn.style.background = c.hex;
+      btn.style.color = c.hex;
+      btn.title = c.name;
+      btn.addEventListener('click', () => {
+        currentColor = c.hex;
+        renderSwatches();
+      });
+      swatchesEl.appendChild(btn);
+    });
+  }
+  renderSwatches();
+
+  brushSizeEl.addEventListener('input', () => {
+    brushSize = parseInt(brushSizeEl.value, 10);
+  });
+
+  clearBtn.addEventListener('click', clearAll);
+
+  // ---- camera + hand tracking ----
+  let handsModel = null;
+  let cameraRunning = false;
+  let lastSeen = 0;
+
+  function setStatus(live) {
+    statusDot.classList.toggle('live', live);
+    statusText.textContent = live ? 'Tracking' : (cameraRunning ? 'Camera on — show your hand' : 'Camera off');
+  }
+
+  function onResults(results) {
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      const lm = results.multiHandLandmarks[0];
+      const tip = lm[8]; // index fingertip
+      addStrokePoint(tip.x, tip.y);
+      lastSeen = performance.now();
+      setStatus(true);
+    } else {
+      if (performance.now() - lastSeen > 200) {
+        breakStroke();
+        setStatus(false);
+      }
+    }
+  }
+
+  async function startCamera() {
+    startBtn.disabled = true;
+    startBtn.textContent = 'Starting…';
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    } catch (err) {
+      console.error('getUserMedia failed', err);
+      statusText.textContent = 'Camera access denied or unavailable';
+      startBtn.disabled = false;
+      startBtn.textContent = 'Try again';
+      return;
+    }
+
+    video.srcObject = stream;
+    await video.play();
+    sizeCanvases();
+    centerMsg.style.display = 'none';
+    cameraRunning = true;
+    setStatus(false);
+
+    if (typeof Hands === 'undefined' || typeof Camera === 'undefined') {
+      statusText.textContent = 'Hand-tracking failed to load — check connection & reload';
+      console.error('MediaPipe Hands/Camera not found on window. Scripts likely failed to load.');
+      return;
+    }
+
+    try {
+      handsModel = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+      handsModel.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.5
+      });
+      handsModel.onResults(onResults);
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await handsModel.send({ image: video });
+        },
+        width: 640,
+        height: 480
+      });
+      camera.start();
+      statusText.textContent = 'Camera on — show your hand';
+    } catch (err) {
+      console.error('Hand-tracking init failed', err);
+      statusText.textContent = 'Hand-tracking failed to start — reload and try again';
+    }
+  }
+
+  startBtn.addEventListener('click', startCamera);
+
+  // ---- save / gallery ----
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 1800);
+  }
+
+  function hasDrawing() {
+    return strokePoints.some(p => !p.brk);
+  }
+
+  async function saveDoodle() {
+    if (!hasDrawing()) {
+      showToast('Draw something first');
+      return;
+    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    try {
+      const exportSize = 640;
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = exportSize;
+      exportCanvas.height = exportSize * 0.75;
+      const ectx = exportCanvas.getContext('2d');
+      ectx.translate(exportCanvas.width, 0);
+      ectx.scale(-1, 1);
+      ectx.lineCap = 'round';
+      ectx.lineJoin = 'round';
+
+      let segment = [];
+      let segColor = null, segSize = null;
+      const scaleFactor = exportCanvas.width / W;
+
+      function flush() {
+        if (segment.length > 1) {
+          ectx.strokeStyle = segColor;
+          ectx.lineWidth = segSize * scaleFactor;
+          strokeSmoothPath(ectx, segment, exportCanvas.width, exportCanvas.height);
+        }
+        segment = [];
+      }
+
+      for (const p of strokePoints) {
+        if (p.brk) { flush(); continue; }
+        if (segColor !== p.color || segSize !== p.size) {
+          flush();
+          segColor = p.color;
+          segSize = p.size;
+        }
+        segment.push(p);
+      }
+      flush();
+
+      const dataUrl = exportCanvas.toDataURL('image/png');
+      const id = 'doodle_' + Date.now();
+      const record = { id, dataUrl, createdAt: new Date().toISOString() };
+      await window.storage.set(id, JSON.stringify(record));
+      await loadGallery();
+      clearAll();
+      showToast('Saved to gallery');
+    } catch (err) {
+      console.error(err);
+      showToast('Could not save — try again');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save to gallery';
+    }
+  }
+  saveBtn.addEventListener('click', saveDoodle);
+
+  async function loadGallery() {
+    galleryGrid.innerHTML = '<div class="empty">Loading…</div>';
+    try {
+      const listResult = await window.storage.list('doodle_');
+      const keys = (listResult && listResult.keys) || [];
+      if (keys.length === 0) {
+        galleryGrid.innerHTML = '<div class="empty">No doodles yet — draw something and save it.</div>';
+        galleryCount.textContent = '';
+        return;
+      }
+      const records = [];
+      for (const key of keys) {
+        try {
+          const res = await window.storage.get(key);
+          if (res && res.value) records.push(JSON.parse(res.value));
+        } catch (e) { /* skip missing */ }
+      }
+      records.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      galleryCount.textContent = records.length + (records.length === 1 ? ' doodle' : ' doodles');
+      galleryGrid.innerHTML = '';
+      records.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const img = document.createElement('img');
+        img.src = r.dataUrl;
+        img.alt = 'Saved doodle';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const time = document.createElement('time');
+        const d = new Date(r.createdAt);
+        time.textContent = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+        const del = document.createElement('button');
+        del.className = 'del';
+        del.textContent = 'Delete';
+        del.addEventListener('click', async () => {
+          card.style.opacity = '0.4';
+          try {
+            await window.storage.delete(r.id);
+            await loadGallery();
+          } catch (e) {
+            showToast('Could not delete');
+            card.style.opacity = '1';
+          }
+        });
+        meta.appendChild(time);
+        meta.appendChild(del);
+        card.appendChild(img);
+        card.appendChild(meta);
+        galleryGrid.appendChild(card);
+      });
+    } catch (err) {
+      console.error(err);
+      galleryGrid.innerHTML = '<div class="empty">Could not load gallery.</div>';
+    }
+  }
+
+  // init
+  sizeCanvases();
+  loadGallery();
+})();
+</script>
+</body>
+</html>
